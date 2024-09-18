@@ -1,6 +1,7 @@
 import { def, hasOwn, isObject, toRawType } from '@vue/shared'
 import {
   mutableHandlers,
+  mutableHandlersAutobind,
   readonlyHandlers,
   shallowReactiveHandlers,
   shallowReadonlyHandlers,
@@ -73,6 +74,7 @@ export interface ReactiveMarker {
 export type Reactive<T> = UnwrapNestedRefs<T> &
   (T extends readonly any[] ? ReactiveMarker : {})
 
+
 /**
  * Returns a reactive proxy of the object.
  *
@@ -88,8 +90,8 @@ export type Reactive<T> = UnwrapNestedRefs<T> &
  * @param target - The source object.
  * @see {@link https://vuejs.org/api/reactivity-core.html#reactive}
  */
-export function reactive<T extends object>(target: T): Reactive<T>
-export function reactive(target: object) {
+export function reactive<T extends object>(target: T,opt?:IReactiveOption): Reactive<T>
+export function reactive(target: object,opt?:IReactiveOption) {
   // if trying to observe a readonly proxy, return the readonly version.
   if (isReadonly(target)) {
     return target
@@ -97,10 +99,16 @@ export function reactive(target: object) {
   return createReactiveObject(
     target,
     false,
-    mutableHandlers,
+    opt?.autoBind? mutableHandlersAutobind:mutableHandlers,
     mutableCollectionHandlers,
     reactiveMap,
   )
+}
+export interface IReactiveOption{
+  /**
+   * autobind for function in object
+   */
+  autoBind?:boolean
 }
 
 export declare const ShallowReactiveMarker: unique symbol

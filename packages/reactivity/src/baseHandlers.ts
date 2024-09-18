@@ -46,10 +46,12 @@ function hasOwnProperty(this: object, key: unknown) {
   return obj.hasOwnProperty(key as string)
 }
 
+//增加autobind参数支持
 class BaseReactiveHandler implements ProxyHandler<Target> {
   constructor(
     protected readonly _isReadonly = false,
     protected readonly _isShallow = false,
+    protected readonly _isAutobind=false
   ) {}
 
   get(target: Target, key: string | symbol, receiver: object): any {
@@ -127,13 +129,18 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       return isReadonly ? readonly(res) : reactive(res)
     }
 
+    //autobind this if function
+    if(typeof res =="function"&&this._isAutobind){
+      return res.bind(receiver)
+    }
     return res
   }
 }
 
+
 class MutableReactiveHandler extends BaseReactiveHandler {
-  constructor(isShallow = false) {
-    super(false, isShallow)
+  constructor(isShallow = false,isAutobind=false) {
+    super(false, isShallow,isAutobind)
   }
 
   set(
@@ -214,8 +221,8 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 }
 
 class ReadonlyReactiveHandler extends BaseReactiveHandler {
-  constructor(isShallow = false) {
-    super(true, isShallow)
+  constructor(isShallow = false,isAutobind=false) {
+    super(true, isShallow,isAutobind)
   }
 
   set(target: object, key: string | symbol) {
@@ -246,6 +253,20 @@ export const readonlyHandlers: ProxyHandler<object> =
   /*@__PURE__*/ new ReadonlyReactiveHandler()
 
 export const shallowReactiveHandlers: MutableReactiveHandler =
+  /*@__PURE__*/ new MutableReactiveHandler(true)
+
+// Props handlers are special in the sense that it should not unwrap top-level
+// refs (in order to allow refs to be explicitly passed down), but should
+// retain the reactivity of the normal readonly object.
+export const shallowReadonlyHandlersAutobind: ReadonlyReactiveHandler =
+  /*@__PURE__*/ new ReadonlyReactiveHandler(true)
+  export const mutableHandlersAutobind: ProxyHandler<object> =
+  /*@__PURE__*/ new MutableReactiveHandler()
+
+export const readonlyHandlersAutobind: ProxyHandler<object> =
+  /*@__PURE__*/ new ReadonlyReactiveHandler()
+
+export const shallowReactiveHandlersAutobind: MutableReactiveHandler =
   /*@__PURE__*/ new MutableReactiveHandler(true)
 
 // Props handlers are special in the sense that it should not unwrap top-level
